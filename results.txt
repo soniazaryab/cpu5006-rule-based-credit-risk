@@ -1,0 +1,38 @@
+Rows at start: 2000
+Missing ages: 3
+Negative ages: 3
+Rows after cleaning: 1994
+Train rows: 1595 | Test rows: 399
+Default rate in train: 0.1417 | test: 0.1429
+
+======================================================================
+System A (expert rule): IF loan_to_income > 0.1 AND age < 41.5 THEN default
+======================================================================
+
+======================================================================
+System B (mined rules): 4 rules found
+Settings: 4 bands, min support 0.01, min confidence 0.5, max 2 conditions
+======================================================================
+ 1. IF age <= 29.027 AND loan_to_income > 0.148 THEN default  (confidence 1.00, covers 101 rows)
+ 2. IF age <= 29.027 AND loan > 6435.228 THEN default  (confidence 0.90, covers 102 rows)
+ 3. IF age <= 29.027 AND 0.100 < loan_to_income <= 0.148 THEN default  (confidence 0.54, covers 97 rows)
+ 4. IF age <= 29.027 AND 3941.699 < loan <= 6435.228 THEN default  (confidence 0.51, covers 93 rows)
+
+======================================================================
+Results on TRAINING data (1595 rows, 226 defaulters)
+======================================================================
+                System  Accuracy  Precision  Recall     F1  TP  FP  FN   TN
+Baseline (always paid)    0.8583     0.0000   0.000 0.0000   0   0 226 1369
+     System A (expert)    0.8959     0.5765   1.000 0.7314 226 166   0 1203
+      System B (mined)    0.9097     0.6830   0.677 0.6800 153  71  73 1298
+
+======================================================================
+Results on TEST data (final results) (399 rows, 57 defaulters)
+======================================================================
+                System  Accuracy  Precision  Recall     F1  TP  FP  FN  TN
+Baseline (always paid)    0.8571     0.0000  0.0000 0.0000   0   0  57 342
+     System A (expert)    0.8997     0.5876  1.0000 0.7403  57  40   0 302
+      System B (mined)    0.8997     0.6393  0.6842 0.6610  39  22  18 320
+
+TP = defaulters caught, FP = good customers wrongly flagged,
+FN = defaulters missed, TN = good customers correctly passed.
