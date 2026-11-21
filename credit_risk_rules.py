@@ -1,14 +1,9 @@
 """
-CPU5006 Assessment 1: Rule-based AI on the Kaggle "Credit risk" dataset.
+Rule-based AI on the Kaggle "Credit risk" dataset.
+Compares an expert-written rule (System A) with rules mined from the data (System B).
 
-Research question:
-    Which rule-based approach more effectively identifies customers who will
-    default on financing: an expert-written rule set (System A), or a rule set
-    mined automatically from the data (System B)?
-
-Dataset: Murilao (2020) "Credit risk" [Dataset]. Kaggle.
-         https://www.kaggle.com/datasets/upadorprofzs/credit-risk
-"""
+Dataset: https://www.kaggle.com/datasets/upadorprofzs/credit-risk
+Run: python credit_risk_rules.py  (needs pandas, scikit-learn)"""
 
 import itertools
 import os
@@ -92,6 +87,7 @@ for col in FEATURES:
     band_edges[col] = edges
 
 
+# AI assistance: this function was drafted with Claude (Anthropic, 2026).
 def to_bands(data):
     """Turn each number into a band label such as 'age=band2'."""
     out = pd.DataFrame(index=data.index)
@@ -112,6 +108,7 @@ def describe_band(item):
     return f"{lo:.3f} < {col} <= {hi:.3f}"
 
 
+# AI assistance: this function was drafted with Claude (Anthropic, 2026).
 def mine_rules(train_bands, labels):
     """Find IF (conditions) THEN default rules that meet support and confidence."""
     n = len(train_bands)
