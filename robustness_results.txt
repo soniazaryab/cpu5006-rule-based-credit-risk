@@ -3,29 +3,98 @@ Rows after cleaning: 1994 | defaulters: 283
 ======================================================================
 1. Repeated stratified 5-fold cross-validation x 4 repeats
 ======================================================================
-                    precision        recall            f1       
-                         mean    std   mean    std   mean    std
-system                                                          
-A: expert rule          0.580  0.030  1.000  0.000  0.734  0.024
-B: mined rules          0.667  0.079  0.830  0.112  0.732  0.058
-C: best single rule     0.380  0.020  0.943  0.027  0.541  0.022
+Every system learns only from the training folds of each evaluation.
 
-Paired comparison of F1 (A minus B), one difference per evaluation:
-  mean difference = 0.002, 95% CI [-0.026, 0.029]
-  System A had the higher F1 in 8 of 20 evaluations (B higher in 12, ties 0)
-  Note: the 20 evaluations reuse the same customers, so they are not fully
-  independent. Treat the interval as a guide, not an exact significance test.
-  Note: System A's thresholds were chosen by looking at the original training
-  split, which overlaps these folds, so A is slightly favoured here.
+Mean and standard deviation over the 20 evaluations:
+        precision        recall            f1       
+             mean    std   mean    std   mean    std
+system                                              
+A_fixed     0.580  0.030  1.000  0.000  0.734  0.024
+A           1.000  0.000  0.990  0.018  0.995  0.009
+B           0.667  0.079  0.830  0.112  0.732  0.058
+B_mdlp      0.908  0.046  0.996  0.010  0.949  0.026
+B_tuned     0.897  0.039  1.000  0.000  0.945  0.022
+H           1.000  0.000  0.990  0.018  0.995  0.009
+C           0.380  0.020  0.943  0.027  0.541  0.022
+A_noage     0.372  0.017  0.995  0.012  0.541  0.018
+B_noage     0.000  0.000  0.000  0.000  0.000  0.000
+
+System keys: A_fixed = A: expert, thresholds set by eye; A = A: expert, re-derived in each fold; B = B: mined, equal bands; B_mdlp = B: mined, class-guided bands; B_tuned = B: mined, equal bands, tuned; H = H: hybrid (expert features, mined thresholds); C = C: best single rule; A_noage = A without age; B_noage = B without age
+
+System A thresholds re-derived in each fold: loan-to-income >= 0.120 (range 0.120 to 0.121); age <= 34.9 (range 34.8 to 34.9)
+Settings chosen by the inner loop for tuned System B (number of folds picking each):
+  n_bands: 5 x20
+  min_support: 0.01 x20
+  min_conf: 0.6 x13, 0.7 x7
+Average number of mined rules per fold: B 4.2, B_mdlp 2.0, B_tuned 6.0, H 1.0, B_noage 0.0
 
 ======================================================================
-2. Best single-condition rule (System C), learned on the training split
+2. Paired comparisons of F1 (corrected resampled t-test, Nadeau and Bengio, 2003)
 ======================================================================
-IF age <= 34.190 THEN default (training F1 0.548)
-Original test split: precision 0.379, recall 0.965, F1 0.545
+Each line: first system minus second, one difference per evaluation (n = 20).
+A plain paired t-test would treat the 20 evaluations as independent; they are not,
+because the training sets overlap, so the corrected test is used instead.
+  A        - B       : mean diff +0.263, 95% CI [+0.198, +0.327], p = 0.000; A higher in 20, B higher in 0, ties 0
+  B_mdlp   - B       : mean diff +0.217, 95% CI [+0.144, +0.290], p = 0.000; B_mdlp higher in 20, B higher in 0, ties 0
+  B_tuned  - B       : mean diff +0.213, 95% CI [+0.139, +0.287], p = 0.000; B_tuned higher in 20, B higher in 0, ties 0
+  A        - B_mdlp  : mean diff +0.046, 95% CI [+0.019, +0.073], p = 0.002; A higher in 19, B_mdlp higher in 1, ties 0
+  A        - B_tuned : mean diff +0.050, 95% CI [+0.022, +0.078], p = 0.002; A higher in 19, B_tuned higher in 1, ties 0
+  B_mdlp   - B_tuned : mean diff +0.004, 95% CI [-0.033, +0.041], p = 0.828; B_mdlp higher in 9, B_tuned higher in 10, ties 1
+  H        - A       : mean diff +0.000, 95% CI [+0.000, +0.000], p = 1.000; H higher in 0, A higher in 0, ties 20
+  A_fixed  - A       : mean diff -0.261, 95% CI [-0.291, -0.232], p = 0.000; A_fixed higher in 0, A higher in 20, ties 0
+  A        - C       : mean diff +0.454, 95% CI [+0.430, +0.478], p = 0.000; A higher in 20, C higher in 0, ties 0
+  B        - C       : mean diff +0.191, 95% CI [+0.119, +0.263], p = 0.000; B higher in 20, C higher in 0, ties 0
 
 ======================================================================
-3a. Sensitivity of System B (5-fold CV on the TRAINING split only)
+3. Original train/test split: every system
+======================================================================
+ system  flagged  TP  FP  FN  precision  recall    F1
+A_fixed       97  57  40   0      0.588   1.000 0.740
+      A       56  56   0   1      1.000   0.982 0.991
+      B       61  39  22  18      0.639   0.684 0.661
+ B_mdlp       69  56  13   1      0.812   0.982 0.889
+B_tuned       68  57  11   0      0.838   1.000 0.912
+      H       56  56   0   1      1.000   0.982 0.991
+      C      145  55  90   2      0.379   0.965 0.545
+A_noage      147  57  90   0      0.388   1.000 0.559
+B_noage        0   0   0  57      0.000   0.000 0.000
+
+System A re-derived on this training split: IF loan_to_income >= 0.120 AND age <= 34.8 THEN default
+System C: IF age <= 34.190 THEN default (training F1 0.548)
+
+Rules mined for B (4 rules):
+  IF age <= 29.027 AND loan_to_income > 0.148 THEN default  (confidence 1.00, covers 101)
+  IF age <= 29.027 AND loan > 6435.228 THEN default  (confidence 0.90, covers 102)
+  IF age <= 29.027 AND 0.100 < loan_to_income <= 0.148 THEN default  (confidence 0.54, covers 97)
+  IF age <= 29.027 AND 3941.699 < loan <= 6435.228 THEN default  (confidence 0.51, covers 93)
+  cut points for income: 32429.255, 45936.597, 57842.236
+  cut points for age: 29.027, 41.487, 52.770
+  cut points for loan: 1948.964, 3941.699, 6435.228
+  cut points for loan_to_income: 0.048, 0.100, 0.148
+
+Rules mined for B_mdlp (2 rules):
+  IF age <= 34.842 AND loan_to_income > 0.120 THEN default  (confidence 1.00, covers 226)
+  IF age <= 34.842 AND loan > 5903.845 THEN default  (confidence 0.88, covers 178)
+  cut points for income: none
+  cut points for age: 34.842
+  cut points for loan: 2506.759, 3675.287, 5903.845
+  cut points for loan_to_income: 0.120
+
+Rules mined for H (1 rules):
+  IF age <= 34.842 AND loan_to_income > 0.120 THEN default  (confidence 1.00, covers 226)
+  cut points for age: 34.842
+  cut points for loan_to_income: 0.120
+
+Tuned System B chose: {'n_bands': 5, 'min_support': 0.01, 'min_conf': 0.7}
+
+McNemar's exact test on the original test split (do the systems err on different clients?)
+  A vs B: A alone wrong on 0 clients, B alone wrong on 39; p = 0.000
+  B_mdlp vs B: B_mdlp alone wrong on 5 clients, B alone wrong on 31; p = 0.000
+  B_tuned vs B: B_tuned alone wrong on 8 clients, B alone wrong on 37; p = 0.000
+  H vs A: H alone wrong on 0 clients, A alone wrong on 0; p = 1.000
+
+======================================================================
+4a. Sensitivity of System B (5-fold CV on the TRAINING split only)
 ======================================================================
 Mean F1 over 5 folds; 'rules' = rules mined on the full training split.
 (F1 of 0 or close to 0 means too few or no rules were found, so nothing was flagged.)
@@ -82,7 +151,7 @@ Mean F1 over 5 folds; 'rules' = rules mined on the full training split.
 F1 ranges from 0.488 to 0.942 across 48 settings (default setting: 4 bands, 0.01, 0.5).
 
 ======================================================================
-3b. Sensitivity of System A thresholds (evaluated on the TRAINING split)
+4b. Sensitivity of System A thresholds set by eye (evaluated on the TRAINING split)
 ======================================================================
  loan_to_income >  age <  precision  recall    F1
              0.08   35.0      0.646   1.000 0.785
@@ -103,17 +172,59 @@ F1 ranges from 0.488 to 0.942 across 48 settings (default setting: 4 bands, 0.01
              0.15   50.0      0.549   0.624 0.584
 
 ======================================================================
-4. Error analysis (original test split)
+5. Error analysis (original test split, System A re-derived vs System B)
 ======================================================================
                                     group  n  median age  median income  median loan  median loan/income
                 Defaulters caught by BOTH 39        24.2        44472.0       7513.0               0.166
-Defaulters caught by A only (missed by B) 18        31.8        35894.0       6237.0               0.170
-                Defaulters missed by BOTH  0         NaN            NaN          NaN                 NaN
-      Good customers wrongly flagged by A 40        35.7        49553.0       6101.0               0.122
+Defaulters caught by A only (missed by B) 17        31.8        37390.0       6454.0               0.169
+Defaulters caught by B only (missed by A)  0         NaN            NaN          NaN                 NaN
+                Defaulters missed by BOTH  1        34.9        21982.0       4265.0               0.194
+      Good customers wrongly flagged by A  0         NaN            NaN          NaN                 NaN
       Good customers wrongly flagged by B 22        23.7        59356.0       5341.0               0.095
 
-Ages of the 18 defaulters that A caught but B missed:
-  30, 30, 30, 30, 30, 30, 31, 31, 32, 32, 32, 33, 33, 33, 34, 34, 34, 35
-  Of these, 18 are older than 29.03 (the youngest age band, which the mined rules rely on if they all need it).
+Ages of the 17 defaulters that A caught but B missed:
+  30, 30, 30, 30, 30, 30, 31, 31, 32, 32, 32, 33, 33, 33, 34, 34, 34
+  Of these, 17 are older than 29.03 (the top of the youngest equal-sized age band).
 
-Saved chart: C:\Users\dell\Documents\GitHub\cpu5006-rule-based-credit-risk\robustness_chart.png
+======================================================================
+6. Expected cost per client (pooled over the 20 evaluations)
+======================================================================
+cost = (r x missed defaulters + refused good clients) / clients, where r is the cost of
+one missed defaulter relative to one refused good client (a refused good client = 1).
+     system  misses  refusals  cost r=1  cost r=5  cost r=10  cost r=20
+          A      11         0     0.001     0.007      0.014      0.028
+          B     193       491     0.086     0.183      0.304      0.546
+     B_mdlp       5       117     0.015     0.018      0.021      0.027
+    B_tuned       0       132     0.017     0.017      0.017      0.017
+          H      11         0     0.001     0.007      0.014      0.028
+          C      65      1748     0.227     0.260      0.301      0.382
+flag nobody    1132         0     0.142     0.710      1.419      2.839
+
+Break-even ratios:
+  A vs B: no break-even: one of the two is better on both kinds of error (or equal)
+  A vs B_mdlp: r* = 19.50; B_mdlp is cheaper when a missed defaulter costs more than this many refused clients
+  A vs B_tuned: r* = 12.00; B_tuned is cheaper when a missed defaulter costs more than this many refused clients
+  B_mdlp vs B: no break-even: one of the two is better on both kinds of error (or equal)
+  B_tuned vs B: no break-even: one of the two is better on both kinds of error (or equal)
+
+======================================================================
+7a. Effect of removing age (mean over the 20 evaluations)
+======================================================================
+         precision  recall     f1
+system                           
+A            1.000   0.990  0.995
+A_noage      0.372   0.995  0.541
+B            0.667   0.830  0.732
+B_noage      0.000   0.000  0.000
+  F1 lost by removing age from A: +0.454 (95% CI [+0.438, +0.470], p = 0.000)
+  F1 lost by removing age from B: +0.732 (95% CI [+0.665, +0.799], p = 0.000)
+
+======================================================================
+7b. Share of each age group flagged (out-of-fold predictions, first repeat)
+======================================================================
+    age group  clients  defaulted %  A flagged %  B flagged %  A_noage flagged %  B_noage flagged %
+     under 30      541         38.4         38.3         50.8               38.3                0.0
+     30 to 41      461         16.3         16.1         19.1               36.0                0.0
+41.5 and over      992          0.0          0.0          0.1               38.9                0.0
+
+Saved charts: c:\Users\dell\Documents\GitHub\cpu5006-rule-based-credit-risk\robustness_chart.png and c:\Users\dell\Documents\GitHub\cpu5006-rule-based-credit-risk\cost_curve.png (and .pdf copies)

@@ -21,10 +21,6 @@ MIN_SUPPORT = 0.01        # System B: a rule must cover at least 1% of training 
 MIN_CONFIDENCE = 0.50     # System B: a rule must be right at least 50% of the time
 MAX_ITEMS = 2             # System B: rules use at most 2 conditions (keeps them readable)
 
-# System A thresholds, chosen by looking at the TRAINING data only
-A_LOAN_TO_INCOME = 0.10
-A_AGE = 41.5
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(HERE, "data", "original.csv")
 RESULTS_FILE = os.path.join(HERE, "results.txt")
@@ -70,9 +66,20 @@ say(f"Default rate in train: {train['default'].mean():.4f} | test: {test['defaul
 
 
 # 2. System A: expert-written rule
+def fit_system_a(train_data):
+    """Flag clients whose loan-to-income is at least the lowest seen among training
+    defaulters and who are no older than the oldest training defaulter."""
+    defaulters = train_data[train_data["default"] == 1]
+    return float(defaulters["loan_to_income"].min()), float(defaulters["age"].max())
+
+
+# Thresholds come from the training data only
+A_LOAN_TO_INCOME, A_AGE = fit_system_a(train)
+
+
 def system_a(data):
-    """IF loan-to-income > 0.10 AND age < 41.5 THEN default ELSE paid."""
-    rule = (data["loan_to_income"] > A_LOAN_TO_INCOME) & (data["age"] < A_AGE)
+    """IF loan-to-income >= A_LOAN_TO_INCOME AND age <= A_AGE THEN default ELSE paid."""
+    rule = (data["loan_to_income"] >= A_LOAN_TO_INCOME) & (data["age"] <= A_AGE)
     return rule.astype(int)
 
 
@@ -176,7 +183,7 @@ def evaluate(name, data, predictor):
 
 
 say("\n" + "=" * 70)
-say(f"System A (expert rule): IF loan_to_income > {A_LOAN_TO_INCOME} AND age < {A_AGE} THEN default")
+say(f"System A (expert rule): IF loan_to_income >= {A_LOAN_TO_INCOME:.3f} AND age <= {A_AGE:.1f} THEN default")
 say("=" * 70)
 
 say("\n" + "=" * 70)
